@@ -6,29 +6,21 @@ import ComposeApp
 public class PlatformNotifierIOS: NSObject, PlatformNotifier {
     private var deviceToken: String = ""
 
-    public func register(completionHandler: @escaping (String?, Error?) -> Void) {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            if let error = error {
-                completionHandler(nil, error)
-                return
-            }
-
-            guard granted else {
-                completionHandler(nil, NSError(domain: "Notifications", code: 1))
-                return
-            }
-
-            DispatchQueue.main.async {
-                UIApplication.shared.registerForRemoteNotifications()
-            }
-
-            completionHandler("", nil)
+    public func register() async throws -> String {
+        let center = UNUserNotificationCenter.current()
+        let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+        if !granted {
+            throw NSError(domain: "Notifications", code: 1)
         }
+
+        DispatchQueue.main.async {
+            UIApplication.shared.registerForRemoteNotifications()
+        }
+        return deviceToken
     }
 
-    public func unregister(completionHandler: @escaping (Error?) -> Void) {
+    public func unregister() async throws {
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
-        completionHandler(nil)
     }
 
     public func getToken() -> String {
